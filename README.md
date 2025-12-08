@@ -48,6 +48,10 @@
 - Chrome Storage API
 - Open-Meteo Weather API（免费，无需 API Key）
 
+## 后端服务
+
+后端代码仓库：https://github.com/dokkee/ultima-back
+
 ## 许可证
 
 MIT License
