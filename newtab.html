@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultima</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 背景 -->
+    <div id="background"></div>
+    
+    <!-- 右上角菜单按钮 -->
+    <div class="top-menu">
+      <button id="menu-btn" class="menu-btn">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    
+    <!-- 右下角风车按钮 -->
+    <div class="bottom-tools">
+      <button id="refresh-wallpaper" class="windmill-btn" title="切换壁纸">
+        <svg class="windmill-icon" viewBox="0 0 24 24" width="20" height="20">
+          <path fill="currentColor" d="M12,2C12,2 7,4 7,9C7,11 8,12.5 10,14L8,16H4V20H8V16L10,14C8,12.5 7,11 7,9C7,4 12,2 12,2M12,2C12,2 17,4 17,9C17,11 16,12.5 14,14L16,16H20V20H16V16L14,14C16,12.5 17,11 17,9C17,4 12,2 12,2M12,8A2,2 0 0,1 14,10A2,2 0 0,1 12,12A2,2 0 0,1 10,10A2,2 0 0,1 12,8Z"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 搜索分类标签 -->
+      <div class="search-tabs">
+        <button class="search-tab active" data-type="web">网页</button>
+        <button class="search-tab" data-type="image">图片</button>
+        <button class="search-tab" data-type="news">新闻</button>
+        <button class="search-tab" data-type="video">视频</button>
+        <button class="search-tab" data-type="map">地图</button>
+      </div>
+      
+      <!-- 搜索框 -->
+      <div class="search-section">
+        <div class="search-box">
+          <div class="search-engine-dropdown">
+            <div class="engine-selector" id="engine-selector">
+              <img id="current-engine-icon" class="search-engine-icon" src="https://www.google.com/favicon.ico" alt="搜索">
+              <span class="engine-arrow">▼</span>
+            </div>
+            <div class="engine-dropdown-menu" id="engine-menu">
+              <div class="engine-option" data-engine="google">
+                <img src="https://www.google.com/favicon.ico" alt="Google">
+                <span>Google</span>
+              </div>
+              <div class="engine-option" data-engine="baidu">
+                <img src="https://www.baidu.com/favicon.ico" alt="百度">
+                <span>百度</span>
+              </div>
+              <div class="engine-option" data-engine="bing">
+                <img src="https://www.bing.com/favicon.ico" alt="Bing">
+                <span>Bing</span>
+              </div>
+              <div class="engine-option" data-engine="duckduckgo">
+                <img src="https://duckduckgo.com/favicon.ico" alt="DuckDuckGo">
+                <span>DuckDuckGo</span>
+              </div>
+            </div>
+          </div>
+          <input type="text" id="search-input" placeholder="输入并搜索" autocomplete="off">
+        </div>
+      </div>
+      
+      <!-- 快捷方式网格 -->
+      <div class="shortcuts-section">
+        <div id="shortcuts-grid" class="shortcuts-grid"></div>
+        <div class="page-dots">
+          <div class="page-dot active"></div>
+          <div class="page-dot"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 侧边栏遮罩 -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
+    <!-- 侧边栏菜单 -->
+    <div class="sidebar" id="sidebar">
+      <!-- 关闭按钮 -->
+      <button class="sidebar-close-float" id="sidebar-close">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <!-- 侧边栏标签页 -->
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-tab="icons">图标库</button>
+        <button class="sidebar-tab" data-tab="settings">设置</button>
+        <button class="sidebar-tab" data-tab="my">我的</button>
+      </div>
+      
+      <!-- 我的 -->
+      <div class="sidebar-content hidden" id="tab-my">
+        <!-- 未登录状态 -->
+        <div id="guest-section" class="user-section">
+          <div class="guest-info">
+            <div class="guest-avatar"><i class="fas fa-user"></i></div>
+            <p>登录后可同步您的数据</p>
+          </div>
+          <div class="auth-buttons">
+            <button id="show-login" class="auth-btn primary">登录</button>
+            <button id="show-register" class="auth-btn secondary">注册</button>
+          </div>
+        </div>
+        
+        <!-- 已登录状态 -->
+        <div id="logged-section" class="user-section" style="display:none">
+          <div class="user-profile">
+            <img id="sidebar-avatar" class="profile-avatar" src="" alt="头像">
+            <div class="profile-info">
+              <span id="user-email" class="user-email"></span>
+              <span class="sync-status" id="sync-status"><i class="fas fa-check-circle"></i> 已同步</span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button id="sync-btn" class="user-action-btn sync"><i class="fas fa-sync-alt"></i> 同步数据</button>
+            <button id="logout-btn" class="user-action-btn logout"><i class="fas fa-sign-out-alt"></i> 退出</button>
+          </div>
+        </div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <!-- 登录表单 -->
+        <div id="login-form-section" class="auth-form-section" style="display:none">
+          <h4>登录</h4>
+          <form id="login-form" class="auth-form">
+            <div class="form-group">
+              <input type="email" id="login-email" placeholder="邮箱" required>
+            </div>
+            <div class="form-group">
+              <input type="password" id="login-password" placeholder="密码" required>
+            </div>
+            <div class="form-error" id="login-error"></div>
+            <button type="submit" class="submit-btn">登录</button>
+          </form>
+          <div class="auth-switch">还没有账号？<a href="#" id="to-register">立即注册</a></div>
+          <div class="auth-switch"><a href="#" id="to-forgot">忘记密码？</a></div>
+        </div>
+        
+        <!-- 忘记密码表单 -->
+        <div id="forgot-form-section" class="auth-form-section" style="display:none">
+          <h4>重置密码</h4>
+          <form id="forgot-form" class="auth-form">
+            <div class="form-group">
+              <input type="email" id="forgot-email" placeholder="邮箱" required>
+            </div>
+            <div class="form-group">
+              <div class="code-input-group">
+                <input type="text" id="forgot-code" placeholder="验证码" maxlength="6" required>
+                <button type="button" id="send-reset-code" class="send-code-btn">发送验证码</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <input type="password" id="reset-new-password" placeholder="新密码(至少6位,含字母和数字)" required>
+              <div class="password-strength" id="reset-password-strength"></div>
+            </div>
+            <div class="form-group">
+              <input type="password" id="reset-confirm-password" placeholder="确认新密码" required>
+            </div>
+            <div class="form-error" id="forgot-error"></div>
+            <button type="submit" class="submit-btn">重置密码</button>
+          </form>
+          <div class="auth-switch">想起密码了？<a href="#" id="forgot-to-login">返回登录</a></div>
+        </div>
+        
+        <!-- 注册表单 -->
+        <div id="register-form-section" class="auth-form-section" style="display:none">
+          <h4>注册</h4>
+          <form id="register-form" class="auth-form">
+            <div class="form-group">
+              <input type="text" id="register-nickname" placeholder="昵称" required>
+            </div>
+            <div class="form-group">
+              <input type="email" id="register-email" placeholder="邮箱" required>
+            </div>
+            <div class="form-group">
+              <div class="code-input-group">
+                <input type="text" id="register-code" placeholder="验证码" maxlength="6" required>
+                <button type="button" id="send-code" class="send-code-btn">发送验证码</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <input type="password" id="register-password" placeholder="密码(至少6位,含字母和数字)" required>
+              <div class="password-strength" id="password-strength"></div>
+            </div>
+            <div class="form-group">
+              <input type="password" id="register-confirm" placeholder="确认密码" required>
+            </div>
+            <div class="form-error" id="register-error"></div>
+            <button type="submit" class="submit-btn">注册</button>
+          </form>
+          <div class="auth-switch">已有账号？<a href="#" id="to-login">立即登录</a></div>
+        </div>
+        
+        <div class="sidebar-section">
+          <h4>数据管理</h4>
+          <button class="sidebar-btn" id="export-data">
+            <i class="fas fa-download"></i> 导出数据
+          </button>
+          <button class="sidebar-btn" id="import-data">
+            <i class="fas fa-upload"></i> 导入数据
+          </button>
+          <button class="sidebar-btn" id="backup-history-btn">
+            <i class="fas fa-history"></i> 历史备份数据
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display:none">
+        </div>
+      </div>
+      
+      <!-- 历史备份弹窗 -->
+      <div id="backup-history-modal" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>历史备份数据</h3>
+            <button class="close-modal" id="close-backup-modal"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="modal-body">
+            <div id="backup-history-list" class="backup-history-list">
+              <div class="backup-loading">加载中...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 设置 -->
+      <div class="sidebar-content hidden" id="tab-settings">
+        <div class="sidebar-section">
+          <h4>图标设置</h4>
+          <div class="setting-item">
+            <label>图标大小 <span id="icon-size-value">60px</span></label>
+            <input type="range" id="icon-size" min="40" max="90" value="60" class="slider">
+          </div>
+          <div class="setting-item">
+            <label>图标间隔 <span id="icon-gap-value">30px</span></label>
+            <input type="range" id="icon-gap" min="10" max="60" value="30" class="slider">
+          </div>
+          <div class="setting-item">
+            <label>布局方式</label>
+            <div class="layout-options" id="layout-options">
+              <div class="layout-option" data-rows="2" data-cols="4" title="2×4">
+                <div class="layout-grid rows-2 cols-4">
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="layout-option" data-rows="2" data-cols="5" title="2×5">
+                <div class="layout-grid rows-2 cols-5">
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="layout-option active" data-rows="2" data-cols="6" title="2×6">
+                <div class="layout-grid rows-2 cols-6">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="layout-option" data-rows="2" data-cols="7" title="2×7">
+                <div class="layout-grid rows-2 cols-7">
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="layout-option" data-rows="3" data-cols="4" title="3×4">
+                <div class="layout-grid rows-3 cols-4">
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="layout-option" data-rows="0" data-cols="0" title="自定义">
+                <div class="layout-custom">
+                  <i class="fas fa-cog"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="setting-item custom-layout-settings" id="custom-layout-section" style="display:none;">
+            <div class="custom-layout-row">
+              <label>行数</label>
+              <input type="number" id="custom-rows" min="1" max="5" value="2">
+            </div>
+            <div class="custom-layout-row">
+              <label>列数</label>
+              <input type="number" id="custom-cols" min="3" max="10" value="6">
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <h4>API 设置</h4>
+          <div class="setting-item">
+            <label>服务器地址</label>
+            <input type="text" id="api-base-url" placeholder="https://example.com/api">
+            <small class="setting-hint">使用登录功能前必须先配置此地址</small>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <h4>壁纸设置</h4>
+          <div class="setting-item">
+            <label>壁纸来源</label>
+            <div class="custom-select" id="wallpaper-source-select">
+              <div class="custom-select-trigger">
+                <span>Bing 每日壁纸</span>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <div class="custom-select-options">
+                <div class="custom-select-option selected" data-value="bing">
+                  <i class="fas fa-image"></i>
+                  <span>Bing 每日壁纸</span>
+                  <i class="fas fa-check check-icon"></i>
+                </div>
+                <div class="custom-select-option" data-value="custom">
+                  <i class="fas fa-link"></i>
+                  <span>自定义</span>
+                  <i class="fas fa-check check-icon"></i>
+                </div>
+              </div>
+              <input type="hidden" id="wallpaper-source" value="bing">
+            </div>
+          </div>
+          <div class="setting-item" id="custom-wallpaper-section" style="display:none;">
+            <label>自定义壁纸URL</label>
+            <input type="text" id="custom-wallpaper" placeholder="输入图片URL">
+          </div>
+        </div>
+      </div>
+      
+      <!-- 图标库 -->
+      <div class="sidebar-content" id="tab-icons">
+        <div class="icon-library-container">
+          <!-- 左侧分类 -->
+          <div class="icon-categories-left">
+            <div class="icon-category active" data-category="">
+              <i class="fas fa-th"></i>
+              <span>全部</span>
+            </div>
+            <div class="icon-category" data-category="system">
+              <i class="fas fa-cog"></i>
+              <span>系统</span>
+            </div>
+            <div class="icon-category" data-category="shopping">
+              <i class="fas fa-shopping-cart"></i>
+              <span>购物</span>
+            </div>
+            <div class="icon-category" data-category="life">
+              <i class="fas fa-home"></i>
+              <span>生活</span>
+            </div>
+            <div class="icon-category" data-category="news">
+              <i class="fas fa-newspaper"></i>
+              <span>新闻</span>
+            </div>
+            <div class="icon-category" data-category="education">
+              <i class="fas fa-graduation-cap"></i>
+              <span>教育</span>
+            </div>
+            <div class="icon-category" data-category="sports">
+              <i class="fas fa-futbol"></i>
+              <span>运动</span>
+            </div>
+            <div class="icon-category" data-category="music">
+              <i class="fas fa-music"></i>
+              <span>音乐</span>
+            </div>
+            <div class="icon-category" data-category="games">
+              <i class="fas fa-gamepad"></i>
+              <span>游戏</span>
+            </div>
+            <div class="icon-category" data-category="finance">
+              <i class="fas fa-chart-line"></i>
+              <span>商业</span>
+            </div>
+            <div class="icon-category" data-category="read">
+              <i class="fas fa-book"></i>
+              <span>阅读</span>
+            </div>
+            <div class="icon-category" data-category="app">
+              <i class="fas fa-mobile-alt"></i>
+              <span>应用</span>
+            </div>
+            <div class="icon-category" data-category="social">
+              <i class="fas fa-users"></i>
+              <span>社交</span>
+            </div>
+            <div class="icon-category" data-category="photos">
+              <i class="fas fa-image"></i>
+              <span>图片</span>
+            </div>
+            <div class="icon-category" data-category="tech">
+              <i class="fas fa-laptop-code"></i>
+              <span>科技</span>
+            </div>
+            <div class="icon-category" data-category="others">
+              <i class="fas fa-ellipsis-h"></i>
+              <span>其他</span>
+            </div>
+          </div>
+          <!-- 右侧内容 -->
+          <div class="icon-library-right">
+            <!-- 搜索框 -->
+            <div class="icon-search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="icon-search-input" placeholder="搜索图标...">
+            </div>
+            <!-- 图标列表 -->
+            <div class="icon-library" id="icon-library">
+              <div class="icon-loading">加载中...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 天气面板 -->
+    <div id="weather-panel" class="panel hidden">
+      <div class="panel-header">
+        <h3>天气</h3>
+        <button class="close-panel"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="weather-content" class="panel-content">
+        <div class="weather-loading">加载中...</div>
+      </div>
+    </div>
+    
+    <!-- 待办事项面板 -->
+    <div id="todo-panel" class="panel hidden">
+      <div class="panel-header">
+        <h3>待办事项</h3>
+        <button class="close-panel"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="panel-content">
+        <div class="todo-input-section">
+          <input type="text" id="todo-input" placeholder="添加新任务...">
+          <button id="add-todo"><i class="fas fa-plus"></i></button>
+        </div>
+        <ul id="todo-list" class="todo-list"></ul>
+      </div>
+    </div>
+    
+    <!-- 笔记面板 -->
+    <div id="notes-panel" class="panel hidden">
+      <div class="panel-header">
+        <h3>笔记</h3>
+        <button class="close-panel"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="panel-content">
+        <div class="notes-input-section">
+          <input type="text" id="note-title" placeholder="标题">
+          <textarea id="note-content" placeholder="写点什么..." rows="4"></textarea>
+          <button id="add-note">保存笔记</button>
+        </div>
+        <div id="notes-list" class="notes-list"></div>
+      </div>
+    </div>
+    
+    <!-- 书签面板 -->
+    <div id="bookmarks-panel" class="panel hidden">
+      <div class="panel-header">
+        <h3>书签</h3>
+        <button class="close-panel"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="panel-content bookmarks-container">
+        <!-- 左侧分类 -->
+        <div id="bookmarks-categories" class="bookmarks-categories"></div>
+        <!-- 右侧内容 -->
+        <div class="bookmarks-right">
+          <div class="bookmarks-search">
+            <input type="text" id="bookmark-search" placeholder="搜索书签...">
+          </div>
+          <div id="bookmarks-list" class="bookmarks-list"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 历史记录面板 -->
+    <div id="history-panel" class="panel hidden">
+      <div class="panel-header">
+        <h3>历史记录</h3>
+        <button class="close-panel"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="panel-content">
+        <div class="history-search">
+          <input type="text" id="history-search" placeholder="搜索历史记录...">
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </div>
+    </div>
+    
+    <!-- 添加快捷方式弹窗 -->
+    <div id="shortcut-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">添加快捷方式</h3>
+          <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>名称</label>
+            <input type="text" id="shortcut-name" placeholder="网站名称">
+          </div>
+          <div class="form-group">
+            <label>网址</label>
+            <input type="text" id="shortcut-url" placeholder="https://example.com">
+            <button id="fetch-icons" class="btn-fetch-icon">获取图标</button>
+          </div>
+          <div class="form-group" id="icon-selection" style="display:none;">
+            <label>选择图标</label>
+            <div id="icon-options" class="icon-options"></div>
+          </div>
+          <div class="form-group">
+            <label>自定义图标URL (可选)</label>
+            <input type="text" id="shortcut-icon" placeholder="或输入自定义图标URL">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-shortcut" class="btn-cancel">取消</button>
+          <button id="save-shortcut" class="btn-save">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/time.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/shortcuts.js"></script>
+  <script src="js/weather.js"></script>
+  <script src="js/todo.js"></script>
+  <script src="js/notes.js"></script>
+  <script src="js/bookmarks.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/wallpaper.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
