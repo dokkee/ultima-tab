@@ -104,9 +104,14 @@ const ShortcutsModule = {
         const isSystemIcon = shortcut.systemIcon;
         
         if (isSystemIcon) {
+          // 待办事项图标显示未完成数量徽章
+          const isTodoIcon = shortcut.url === 'infinity://todos';
+          const badgeHtml = isTodoIcon ? '<span class="shortcut-badge" id="todo-badge" style="display:none"></span>' : '';
+          
           item.innerHTML = `
             <div class="shortcut-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
               <i class="fas fa-${shortcut.systemIcon}" style="color:white;font-size:24px"></i>
+              ${badgeHtml}
             </div>
             <span class="shortcut-name">${shortcut.name}</span>
             <button class="shortcut-edit" data-id="${shortcut.id}">
@@ -116,6 +121,11 @@ const ShortcutsModule = {
               <i class="fas fa-times"></i>
             </button>
           `;
+          
+          // 初始化待办事项徽章
+          if (isTodoIcon) {
+            this.updateTodoBadge();
+          }
         } else {
           item.innerHTML = `
             <div class="shortcut-icon">
@@ -181,6 +191,31 @@ const ShortcutsModule = {
         // 显示当前图标的按钮
         item.classList.add('show-actions');
       });
+
+      // 直接为编辑和删除按钮绑定事件
+      const editBtn = item.querySelector('.shortcut-edit');
+      const deleteBtn = item.querySelector('.shortcut-delete');
+      
+      if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = parseInt(editBtn.dataset.id);
+          this.openEditModal(id);
+          document.querySelectorAll('.shortcut-item.show-actions').forEach(el => {
+            el.classList.remove('show-actions');
+          });
+        });
+      }
+      
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = parseInt(deleteBtn.dataset.id);
+          this.delete(id);
+        });
+      }
 
       // 拖拽事件
       this.bindDragEvents(item, shortcut);
@@ -355,27 +390,6 @@ const ShortcutsModule = {
         this.openModal();
         return;
       }
-
-      const editBtn = e.target.closest('.shortcut-edit');
-      if (editBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const id = parseInt(editBtn.dataset.id);
-        this.openEditModal(id);
-        // 隐藏按钮
-        document.querySelectorAll('.shortcut-item.show-actions').forEach(el => {
-          el.classList.remove('show-actions');
-        });
-        return;
-      }
-
-      const deleteBtn = e.target.closest('.shortcut-delete');
-      if (deleteBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const id = parseInt(deleteBtn.dataset.id);
-        this.delete(id);
-      }
     });
 
     // 弹窗事件
@@ -540,26 +554,20 @@ const ShortcutsModule = {
     }
 
     if (this.editingId) {
-      // 编辑模式 - 不自动添加 https://
+      // 编辑模式 - 更新数据并刷新对应元素
       const index = this.shortcuts.findIndex(s => s.id === this.editingId);
       if (index !== -1) {
         if (isSystem) {
-          // 系统图标只能修改图标
-          this.shortcuts[index] = {
-            ...this.shortcuts[index],
-            icon
-          };
+          this.shortcuts[index] = { ...this.shortcuts[index], icon };
         } else {
-          this.shortcuts[index] = {
-            ...this.shortcuts[index],
-            name,
-            url,
-            icon
-          };
+          this.shortcuts[index] = { ...this.shortcuts[index], name, url, icon };
         }
+        await Storage.set('shortcuts', this.shortcuts);
+        // 只更新对应的 DOM 元素
+        this.updateShortcutElement(this.shortcuts[index]);
       }
     } else {
-      // 新增模式 - 自动添加 https://
+      // 新增模式
       if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('infinity://') && !url.startsWith('chrome://')) {
         url = 'https://' + url;
       }
@@ -571,21 +579,239 @@ const ShortcutsModule = {
         color: this.getRandomColor()
       };
       this.shortcuts.push(newShortcut);
+      await Storage.set('shortcuts', this.shortcuts);
       
-      // 跳转到最后一页显示新添加的图标
+      // 检查是否需要跳转到新页面
+      const { perPage } = await this.getLayoutConfig();
       const totalPages = await this.getTotalPages();
-      this.currentPage = totalPages - 1;
+      const lastPageIndex = totalPages - 1;
+      
+      if (this.currentPage === lastPageIndex) {
+        // 当前在最后一页，直接添加元素
+        const currentPageCount = this.shortcuts.length - (this.currentPage * perPage);
+        if (currentPageCount <= perPage) {
+          this.appendShortcutElement(newShortcut);
+        } else {
+          // 需要新页面，重新渲染
+          this.currentPage = lastPageIndex;
+          this.render();
+        }
+      } else {
+        // 跳转到最后一页
+        this.currentPage = lastPageIndex;
+        this.render();
+      }
+      this.updatePageDots();
     }
 
-    await Storage.set('shortcuts', this.shortcuts);
-    this.render();
     this.closeModal();
   },
 
+  // 更新单个快捷方式元素
+  updateShortcutElement(shortcut) {
+    const itemEl = document.querySelector(`.shortcut-item[data-id="${shortcut.id}"]`);
+    if (!itemEl) return;
+    
+    const iconEl = itemEl.querySelector('.shortcut-icon img');
+    const nameEl = itemEl.querySelector('.shortcut-name');
+    
+    if (iconEl && shortcut.icon) {
+      iconEl.src = shortcut.icon;
+    }
+    if (nameEl) {
+      nameEl.textContent = shortcut.name;
+    }
+  },
+
+  // 追加单个快捷方式元素
+  appendShortcutElement(shortcut) {
+    const grid = document.getElementById('shortcuts-grid');
+    if (!grid) return;
+    
+    const item = this.createShortcutElement(shortcut);
+    item.style.opacity = '0';
+    item.style.transform = 'scale(0.8)';
+    grid.appendChild(item);
+    
+    // 触发动画
+    requestAnimationFrame(() => {
+      item.style.transition = 'transform 0.3s, opacity 0.3s';
+      item.style.opacity = '1';
+      item.style.transform = 'scale(1)';
+    });
+  },
+
+  // 创建快捷方式元素（从 render 中提取）
+  createShortcutElement(shortcut) {
+    const isFolder = shortcut.isFolder;
+    const isSystemUrl = !isFolder && (shortcut.url.startsWith('chrome://') || shortcut.url.startsWith('infinity://'));
+    const item = document.createElement(isFolder || isSystemUrl ? 'div' : 'a');
+    item.className = 'shortcut-item';
+    item.draggable = true;
+    
+    if (!isFolder && !isSystemUrl) {
+      item.href = shortcut.url;
+    }
+    item.dataset.id = shortcut.id;
+    if (!isFolder) item.dataset.url = shortcut.url;
+
+    if (isFolder) {
+      const children = shortcut.children || [];
+      const previewIcons = children.slice(0, 4);
+      item.innerHTML = `
+        <div class="shortcut-icon folder-icon">
+          <div class="folder-preview">
+            ${previewIcons.map(child => {
+              const childIcon = child.icon || this.getFavicon(child.url);
+              return `<img src="${childIcon}" onerror="this.style.visibility='hidden'">`;
+            }).join('')}
+          </div>
+        </div>
+        <span class="shortcut-name">${shortcut.name}</span>
+        <button class="shortcut-delete" data-id="${shortcut.id}">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      item.addEventListener('click', (e) => {
+        if (!e.target.closest('.shortcut-delete')) {
+          this.openFolder(shortcut, e);
+        }
+      });
+    } else {
+      const iconUrl = shortcut.icon || this.getFavicon(shortcut.url);
+      const fallbackUrl = this.getFallbackIcon(shortcut.url);
+      const bgColor = shortcut.color || this.getRandomColor();
+      const isSystemIcon = shortcut.systemIcon;
+      
+      if (isSystemIcon) {
+        const isTodoIcon = shortcut.url === 'infinity://todos';
+        const badgeHtml = isTodoIcon ? '<span class="shortcut-badge" id="todo-badge" style="display:none"></span>' : '';
+        
+        item.innerHTML = `
+          <div class="shortcut-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+            <i class="fas fa-${shortcut.systemIcon}" style="color:white;font-size:24px"></i>
+            ${badgeHtml}
+          </div>
+          <span class="shortcut-name">${shortcut.name}</span>
+          <button class="shortcut-edit" data-id="${shortcut.id}">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="shortcut-delete" data-id="${shortcut.id}">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        
+        if (isTodoIcon) {
+          this.updateTodoBadge();
+        }
+      } else {
+        item.innerHTML = `
+          <div class="shortcut-icon">
+            <img src="${iconUrl}" data-fallback="${fallbackUrl}">
+            <span class="icon-letter" style="display:none;background:${bgColor}">${shortcut.name.charAt(0).toUpperCase()}</span>
+          </div>
+          <span class="shortcut-name">${shortcut.name}</span>
+          <button class="shortcut-edit" data-id="${shortcut.id}">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="shortcut-delete" data-id="${shortcut.id}">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+
+        const img = item.querySelector('img');
+        if (img) {
+          img.addEventListener('error', function() {
+            const fallback = this.dataset.fallback;
+            if (fallback && !this.dataset.tried) {
+              this.dataset.tried = 'true';
+              this.src = fallback;
+            } else {
+              this.style.display = 'none';
+              this.nextElementSibling.style.display = 'flex';
+            }
+          });
+        }
+      }
+
+      if (isSystemUrl) {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', async (e) => {
+          if (!e.target.closest('.shortcut-edit') && !e.target.closest('.shortcut-delete')) {
+            if (shortcut.url === 'infinity://bookmarks' || shortcut.url === 'infinity://barkmarks') {
+              openPanel('bookmarks-panel');
+            } else if (shortcut.url === 'infinity://history') {
+              await this.checkHistoryPermissionAndOpen();
+            } else if (shortcut.url === 'infinity://todos') {
+              openPanel('todo-panel');
+            } else if (shortcut.url === 'chrome://history') {
+              await this.checkHistoryPermissionAndOpen();
+            } else if (shortcut.url === 'chrome://bookmarks') {
+              openPanel('bookmarks-panel');
+            } else if (shortcut.url.startsWith('chrome://')) {
+              chrome.tabs.create({ url: shortcut.url });
+            }
+          }
+        });
+      }
+    }
+
+    // 右键菜单
+    item.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.shortcut-item.show-actions').forEach(el => {
+        el.classList.remove('show-actions');
+      });
+      item.classList.add('show-actions');
+    });
+
+    // 编辑和删除按钮事件
+    const editBtn = item.querySelector('.shortcut-edit');
+    const deleteBtn = item.querySelector('.shortcut-delete');
+    
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openEditModal(parseInt(editBtn.dataset.id));
+        document.querySelectorAll('.shortcut-item.show-actions').forEach(el => {
+          el.classList.remove('show-actions');
+        });
+      });
+    }
+    
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.delete(parseInt(deleteBtn.dataset.id));
+      });
+    }
+
+    // 拖拽事件
+    this.bindDragEvents(item, shortcut);
+    
+    return item;
+  },
+
   async delete(id) {
+    // 从 DOM 中移除元素（带动画）
+    const itemEl = document.querySelector(`.shortcut-item[data-id="${id}"]`);
+    if (itemEl) {
+      itemEl.style.transition = 'transform 0.2s, opacity 0.2s';
+      itemEl.style.transform = 'scale(0.8)';
+      itemEl.style.opacity = '0';
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      itemEl.remove();
+    }
+    
+    // 更新数据
     this.shortcuts = this.shortcuts.filter(s => s.id !== id);
     await Storage.set('shortcuts', this.shortcuts);
-    this.render();
+    
+    // 更新分页指示器
+    this.updatePageDots();
   },
 
   // 拖拽事件绑定
@@ -939,5 +1165,21 @@ const ShortcutsModule = {
     
     modal.classList.add('hidden');
     this.currentFolder = null;
+  },
+
+  // 更新待办事项徽章
+  async updateTodoBadge() {
+    const badge = document.getElementById('todo-badge');
+    if (!badge) return;
+    
+    const todos = await Storage.get('todos', []);
+    const uncompletedCount = todos.filter(t => !t.completed).length;
+    
+    if (uncompletedCount > 0) {
+      badge.textContent = uncompletedCount > 99 ? '99+' : uncompletedCount;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 };
