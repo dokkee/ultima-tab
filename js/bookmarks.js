@@ -3,6 +3,10 @@ const BookmarksModule = {
   bookmarkTree: [],
   currentFolder: null,
   allBookmarks: [],
+  currentBookmarks: [],
+  displayedCount: 0,
+  pageSize: 50,
+  isLoading: false,
 
   async init() {
     this.bindEvents();
@@ -13,6 +17,17 @@ const BookmarksModule = {
     document.getElementById('bookmark-search').addEventListener('input', (e) => {
       this.filterBookmarks(e.target.value);
     });
+
+    // 滚动加载更多
+    const list = document.getElementById('bookmarks-list');
+    if (list) {
+      list.addEventListener('scroll', () => {
+        if (this.isLoading) return;
+        if (list.scrollHeight - list.scrollTop - list.clientHeight < 100) {
+          this.loadMore();
+        }
+      });
+    }
   },
 
   async loadBookmarks() {
@@ -21,10 +36,9 @@ const BookmarksModule = {
         this.bookmarkTree = tree[0]?.children || [];
         this.allBookmarks = this.flattenBookmarks(this.bookmarkTree);
         this.renderCategories();
-        // 默认选中第一个分类
-        if (this.bookmarkTree.length > 0) {
-          this.selectCategory(this.bookmarkTree[0]);
-        }
+        // 默认选中"全部"
+        this.currentFolder = null;
+        this.renderBookmarks(this.allBookmarks);
       });
     } catch (error) {
       document.getElementById('bookmarks-list').innerHTML =
@@ -108,34 +122,48 @@ const BookmarksModule = {
 
   renderBookmarks(bookmarks) {
     const list = document.getElementById('bookmarks-list');
+    this.currentBookmarks = bookmarks;
+    this.displayedCount = 0;
 
     if (!bookmarks || bookmarks.length === 0) {
       list.innerHTML = '<div class="empty-state">此分类下暂无书签</div>';
       return;
     }
 
-    const displayBookmarks = bookmarks.slice(0, 100);
-
-    list.innerHTML = displayBookmarks.map(bookmark => `
-      <a href="${bookmark.url}" class="bookmark-item" title="${bookmark.url}">
-        <img src="${this.getFavicon(bookmark.url)}" class="bookmark-icon">
-        <span class="bookmark-title">${this.escapeHtml(bookmark.title)}</span>
-      </a>
-    `).join('');
-
-    this.bindIconErrorEvents(list);
-
-    if (bookmarks.length > 100) {
-      list.innerHTML += `<div class="empty-state">还有 ${bookmarks.length - 100} 个书签...</div>`;
-    }
+    list.innerHTML = '';
+    this.loadMore();
   },
 
-  bindIconErrorEvents(list) {
-    list.querySelectorAll('.bookmark-icon').forEach(img => {
+  loadMore() {
+    if (this.isLoading) return;
+    if (this.displayedCount >= this.currentBookmarks.length) return;
+
+    this.isLoading = true;
+    const list = document.getElementById('bookmarks-list');
+    const nextBatch = this.currentBookmarks.slice(this.displayedCount, this.displayedCount + this.pageSize);
+
+    const fragment = document.createDocumentFragment();
+    nextBatch.forEach(bookmark => {
+      const a = document.createElement('a');
+      a.href = bookmark.url;
+      a.className = 'bookmark-item';
+      a.title = bookmark.url;
+      a.innerHTML = `
+        <img src="${this.getFavicon(bookmark.url)}" class="bookmark-icon">
+        <span class="bookmark-title">${this.escapeHtml(bookmark.title)}</span>
+      `;
+      
+      const img = a.querySelector('img');
       img.addEventListener('error', function () {
         this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🔗</text></svg>';
       });
+      
+      fragment.appendChild(a);
     });
+
+    list.appendChild(fragment);
+    this.displayedCount += nextBatch.length;
+    this.isLoading = false;
   },
 
   findFolderById(id, nodes) {

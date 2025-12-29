@@ -251,10 +251,26 @@ const IconsModule = {
     ShortcutsModule.shortcuts.push(newShortcut);
     await Storage.set('shortcuts', ShortcutsModule.shortcuts);
     
-    // 跳转到最后一页显示新添加的图标
+    // 检查是否需要跳转页面
+    const { perPage } = await ShortcutsModule.getLayoutConfig();
     const totalPages = await ShortcutsModule.getTotalPages();
-    ShortcutsModule.currentPage = totalPages - 1;
-    ShortcutsModule.render();
+    const lastPageIndex = totalPages - 1;
+    
+    if (ShortcutsModule.currentPage === lastPageIndex) {
+      // 当前在最后一页，直接添加元素
+      const currentPageCount = ShortcutsModule.shortcuts.length - (ShortcutsModule.currentPage * perPage);
+      if (currentPageCount <= perPage) {
+        ShortcutsModule.appendShortcutElement(newShortcut);
+      } else {
+        ShortcutsModule.currentPage = lastPageIndex;
+        ShortcutsModule.render();
+      }
+    } else {
+      // 跳转到最后一页
+      ShortcutsModule.currentPage = lastPageIndex;
+      ShortcutsModule.render();
+    }
+    ShortcutsModule.updatePageDots();
 
     // 更新按钮状态显示已添加
     if (btn) {

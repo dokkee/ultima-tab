@@ -106,6 +106,9 @@ const API = {
         body: JSON.stringify(data)
       });
       const result = await response.json();
+      if (result.code === 401) {
+        return { success: false, message: result.msg || 'Token无效', unauthorized: true };
+      }
       if (result.code === 200) {
         return { success: true, message: result.msg || '同步成功' };
       }
@@ -124,6 +127,9 @@ const API = {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
+      if (result.code === 401) {
+        return { success: false, message: result.msg || 'Token无效', unauthorized: true };
+      }
       if (result.code === 200 && result.data) {
         return { success: true, data: result.data };
       }
@@ -142,6 +148,9 @@ const API = {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
+      if (result.code === 401) {
+        return { success: false, message: result.msg || 'Token无效', unauthorized: true };
+      }
       if (result.code === 200 && result.data) {
         return { success: true, data: result.data };
       }
@@ -160,6 +169,9 @@ const API = {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
+      if (result.code === 401) {
+        return { success: false, message: result.msg || 'Token无效', unauthorized: true };
+      }
       if (result.code === 200) {
         return { success: true, message: result.msg || '恢复成功', data: result.data };
       }

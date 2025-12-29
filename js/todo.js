@@ -64,6 +64,7 @@ const TodoModule = {
 
     await Storage.set('todos', this.todos);
     this.render();
+    this.updateBadge();
     input.value = '';
   },
 
@@ -73,6 +74,7 @@ const TodoModule = {
       todo.completed = !todo.completed;
       await Storage.set('todos', this.todos);
       this.render();
+      this.updateBadge();
     }
   },
 
@@ -80,5 +82,13 @@ const TodoModule = {
     this.todos = this.todos.filter(t => t.id !== id);
     await Storage.set('todos', this.todos);
     this.render();
+    this.updateBadge();
+  },
+
+  // 更新桌面图标徽章
+  updateBadge() {
+    if (typeof ShortcutsModule !== 'undefined') {
+      ShortcutsModule.updateTodoBadge();
+    }
   }
 };

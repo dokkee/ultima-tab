@@ -392,6 +392,13 @@ const AuthModule = {
         }
       };
       const result = await API.syncToServer(this.token, data);
+      
+      // 处理 401 未授权错误
+      if (result.unauthorized) {
+        await this.handleUnauthorized();
+        return;
+      }
+      
       if (statusEl) {
         statusEl.innerHTML = result.success 
           ? '<i class="fas fa-check-circle"></i> 已同步' 
@@ -400,6 +407,13 @@ const AuthModule = {
     } catch {
       if (statusEl) statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> 同步失败';
     }
+  },
+
+  // 处理授权过期
+  async handleUnauthorized() {
+    alert('登录已过期，请重新登录');
+    await this.logout();
+    this.showForm('login');
   },
 
   // 清理快捷方式数据，修复错误的URL
@@ -431,6 +445,13 @@ const AuthModule = {
     if (!this.token) return;
     try {
       const result = await API.syncFromServer(this.token);
+      
+      // 处理 401 未授权错误
+      if (result.unauthorized) {
+        await this.handleUnauthorized();
+        return;
+      }
+      
       if (result.success && result.data) {
         // 清理并保存数据
         if (result.data.shortcuts) {
@@ -485,6 +506,13 @@ const AuthModule = {
     
     const result = await API.getSyncHistory(this.token, this.backupPage, this.backupPageSize);
     
+    // 处理 401 未授权错误
+    if (result.unauthorized) {
+      this.closeBackupHistory();
+      await this.handleUnauthorized();
+      return;
+    }
+    
     // 适配分页返回格式: { data: { total, page, page_size, data: [...] } }
     const historyList = result.data?.data || [];
     const total = result.data?.total || 0;
@@ -530,6 +558,13 @@ const AuthModule = {
     if (!confirm('确定要从该节点恢复数据吗？当前数据将被覆盖。')) return;
 
     const result = await API.restoreFromHistory(this.token, id);
+    
+    // 处理 401 未授权错误
+    if (result.unauthorized) {
+      this.closeBackupHistory();
+      await this.handleUnauthorized();
+      return;
+    }
     
     if (result.success) {
       // 恢复成功后重新加载数据，清理错误的URL

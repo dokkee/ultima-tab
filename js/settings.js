@@ -78,6 +78,15 @@ const SettingsModule = {
     document.getElementById('api-base-url')?.addEventListener('change', async (e) => {
       await API.setBaseUrl(e.target.value);
     });
+
+    // 搜索框圆角滑动条 - 实时生效并自动保存
+    document.getElementById('search-radius')?.addEventListener('input', async (e) => {
+      const valueEl = document.getElementById('search-radius-value');
+      if (valueEl) valueEl.textContent = e.target.value + 'px';
+      this.updateSliderGradient(e.target);
+      document.documentElement.style.setProperty('--search-radius', e.target.value + 'px');
+      await Storage.set('searchRadius', parseInt(e.target.value));
+    });
   },
 
   // 保存布局设置
@@ -110,6 +119,14 @@ const SettingsModule = {
     const apiBaseUrl = await Storage.get('apiBaseUrl', '');
     const apiBaseUrlEl = document.getElementById('api-base-url');
     if (apiBaseUrlEl) apiBaseUrlEl.value = apiBaseUrl;
+
+    // 搜索框圆角设置
+    const searchRadius = await Storage.get('searchRadius', 24);
+    const searchRadiusEl = document.getElementById('search-radius');
+    const searchRadiusValueEl = document.getElementById('search-radius-value');
+    if (searchRadiusEl) searchRadiusEl.value = searchRadius;
+    if (searchRadiusValueEl) searchRadiusValueEl.textContent = searchRadius + 'px';
+    document.documentElement.style.setProperty('--search-radius', searchRadius + 'px');
 
     // 壁纸设置
     const wallpaperSource = await Storage.get('wallpaperSource', 'bing');

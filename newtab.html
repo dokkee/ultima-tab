@@ -6,6 +6,9 @@
   <title>Ultima</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="app">
@@ -232,6 +235,13 @@
       
       <!-- 设置 -->
       <div class="sidebar-content hidden" id="tab-settings">
+        <div class="sidebar-section">
+          <h4>搜索框设置</h4>
+          <div class="setting-item">
+            <label>圆角大小 <span id="search-radius-value">24px</span></label>
+            <input type="range" id="search-radius" min="0" max="50" value="24" class="slider">
+          </div>
+        </div>
         <div class="sidebar-section">
           <h4>图标设置</h4>
           <div class="setting-item">
